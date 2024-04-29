@@ -11,9 +11,12 @@ unsigned int reg[32];  // 레지스터 배열
 unsigned int pc = 0;  // 프로그램 카운터
 unsigned int instruction_count = 0;  // 실행된 명령어의 수
 unsigned int opcode, rs, rt, rd, shamt, funct, immediate, address;
+unsigned int aluResult=0;
 
 // 제어 신호
 int regDest, ALUSrc, memToReg, regWrite, memRead, memWrite, branch, jump, ALUOp;
+
+
 
 // 명령어 통계
 unsigned int i_type_count = 0;
@@ -49,6 +52,8 @@ int main() {
         instruction_count++;  // 실행된 명령어 수 증가
     }
 
+    printf("Final value in v0 (r2): %u\n", reg[2]);  // 최종 결과 값 출력
+
     // 최종 통계 출력
     printf("Total instruction: %u\n", instruction_count);
     printf("Execution cycles: %u\n", instruction_count);
@@ -65,14 +70,14 @@ int main() {
 
 void initialize() {
     for (int i = 0; i < MEM_SIZE; i++) {
-        memory[i] = 0;  // 메모리 초기화
+        memory[i] = 0;
     }
     for (int i = 0; i < 32; i++) {
-        reg[i] = 0;  // 레지스터 초기화
+        reg[i] = 0;
     }
-    reg[29] = 0x80000; // 스택 포인터 초기화
-    reg[31] = 0xFFFFFFFF; // 초기 리턴 주소 설정
-    pc = 0; // 프로그램 카운터 초기화
+    reg[29] = 0x80000;
+    reg[31] = 0xFFFFFFFF;
+    pc = 0;
 }
 
 int reverseBytes(int value) {
@@ -111,9 +116,9 @@ void fetch() {
     opcode = (instruction >> 26) & 0x0000003F;  // 명령어에서 opcode 추출
     //printf("%x\n", opcode);
     rs = (instruction >> 21) & 0x1F;  // rs 필드 추출
-    //printf("%x\n", rs);
+    printf("%x\n", rs);
     rt = (instruction >> 16) & 0x1F;  // rt 필드 추출
-    //printf("%x\n", rt);
+    printf("%x\n", rt);
     rd = (instruction >> 11) & 0x0000001F;  // rd 필드 추출
     //printf("%x\n", rd);
     shamt = (instruction >> 6) & 0x0000001F;  // shamt 필드 추출
@@ -121,6 +126,7 @@ void fetch() {
     immediate = instruction & 0x0000FFFF;  // 즉시값 필드 추출
     address = instruction & 0x03FFFFFF;  // 주소 필드 추출
     pc += 4;  // PC를 다음 명령어로 이동
+    
 }
 
 void decode() {
@@ -246,7 +252,7 @@ void decode() {
 }
 
 void execute() {
-    unsigned int aluResult = 0;
+    aluResult = 0;
     unsigned int src1 = reg[rs];
     unsigned int src2 = ALUSrc ? sign_extend(immediate, 16) : reg[rt];
     //printf("%x", src2);
@@ -321,10 +327,18 @@ void write_back() {
             reg[rt] = memory[address / 4];
         }
         else {
-            reg[rt] = (regDest && rd < 32) ? reg[rd] : reg[rt];
+            if(regDest){
+                reg[rd]=aluResult;
+            }
+            else{
+                reg[rt]=aluResult;
+            }
+            
         }
     }
 }
+
+
 
 unsigned int sign_extend(unsigned int value, int bits) {
     int shift = 32 - bits;  // 부호 확장을 위한 쉬프트 계산
