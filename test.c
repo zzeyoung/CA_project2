@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MEM_SIZE 1024  // 메모리 크기를 정의합니다.
+#define MEM_SIZE 1024*1024  // 메모리 크기를 정의합니다.
 #define INPUTFILENAME "simple.bin"
 
 unsigned int memory[MEM_SIZE];  // 메모리 배열
@@ -43,7 +43,7 @@ int main() {
     load_program(INPUTFILENAME);  // 프로그램 로딩
 
     while (pc != 0xFFFFFFFF) {  // 무한 루프
-        printf("************cycle:%d************\n",instruction_count);
+        printf("\n************cycle:%d************\n",instruction_count);
         fetch();  // 명령어 가져오기
         decode();  // 명령어 해석
         execute();  // 명령어 실행
@@ -51,6 +51,7 @@ int main() {
         write_back();  // 결과 레지스터에 쓰기
         instruction_count++;  // 실행된 명령어 수 증가
     }
+    printf("\n************end************\n\n");
 
     printf("Final value in v0 (r2): %u\n", reg[2]);  // 최종 결과 값 출력
 
@@ -112,20 +113,19 @@ void load_program(const char* filename) {
 
 void fetch() {
     instruction = memory[pc / 4];  // 현재 PC에서 명령어 가져오기
-    printf("instruction : %x\n\n", instruction);
+    printf("instruction : %x\n", instruction);
    
     pc += 4;  // PC를 다음 명령어로 이동
-    
 }
 
 void decode() {
 
-     opcode = (instruction >> 26) & 0x0000003F;  // 명령어에서 opcode 추출
+    opcode = (instruction >> 26) & 0x0000003F;  // 명령어에서 opcode 추출
     //printf("%x\n", opcode);
     rs = (instruction >> 21) & 0x1F;  // rs 필드 추출
-    printf("%x\n", rs);
+    //printf("%x\n", rs);
     rt = (instruction >> 16) & 0x1F;  // rt 필드 추출
-    printf("%x\n", rt);
+    //printf("%x\n", rt);
     rd = (instruction >> 11) & 0x0000001F;  // rd 필드 추출
     //printf("%x\n", rd);
     shamt = (instruction >> 6) & 0x0000001F;  // shamt 필드 추출
@@ -170,6 +170,7 @@ void decode() {
             break;
         case 0x08: // JR
             jump = 1;
+            regWrite= 0 ;
             pc = reg[rs];
             jump_count++;
             break;
@@ -188,6 +189,7 @@ void decode() {
         regWrite = 1;
         ALUOp = 2; // 덧셈 연산, 오버플로우 무시
         i_type_count++;
+        //printf("실행됏어요~~\n");
         break;
     case 0x0C: // ANDI
         ALUSrc = 1;
@@ -218,11 +220,13 @@ void decode() {
         memRead = 1;
         memToReg = 1;
         regWrite = 1;
+        ALUOp = 2;
         lw_count++;
         break;
     case 0x2B: // SW
         ALUSrc = 1; // 주소 계산은 즉시값 사용
         memWrite = 1;
+        ALUOp = 2;
         sw_count++;
         break;
     case 0x04: // BEQ
@@ -253,12 +257,14 @@ void decode() {
     default:
         printf("Unknown opcode\n");
     }
+    printf("pc[0x%x]\n",pc);
 }
 
 void execute() {
     aluResult = 0;
     unsigned int src1 = reg[rs];
     unsigned int src2 = ALUSrc ? sign_extend(immediate, 16) : reg[rt];
+    //printf("%x\n",src2);
     //printf("%x", src2);
     //printf("%x\n", rt);
     switch (ALUOp) {
@@ -294,7 +300,7 @@ void execute() {
         if (memRead || memWrite) {
             address = aluResult; // LW와 SW를 위해 주소 저장
         }
-      
+      //printf("address:%x\n",address);
     }
 }
 
@@ -305,6 +311,7 @@ void memory_access() {
             exit(EXIT_FAILURE);
         }
         reg[rt] = memory[address / 4];
+        
     }
     else if (memWrite==1) {
         if (address / 4 >= MEM_SIZE) {
@@ -312,6 +319,7 @@ void memory_access() {
             exit(EXIT_FAILURE);
         }
         memory[address / 4] = reg[rt];
+        printf("momory[%x] = reg[rt]\n",address,rt);
     }
 }
 
@@ -322,7 +330,7 @@ void write_back() {
             fprintf(stderr, "Register index out of bounds.\n");
             exit(EXIT_FAILURE);
         }
-
+        //printf("********memory write예용\n");
         if (memToReg) {
             if (address / 4 >= MEM_SIZE) {
                 fprintf(stderr, "Memory read error for write-back: address out of bounds.\n");
@@ -333,9 +341,11 @@ void write_back() {
         else {
             if(regDest){
                 reg[rd]=aluResult;
+                printf("reg[%d] = %x\n",rd,aluResult);
             }
             else{
                 reg[rt]=aluResult;
+                printf("reg[%d] = %x\n",rt,aluResult);
             }
             
         }
