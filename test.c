@@ -10,7 +10,7 @@ unsigned int memory[MEM_SIZE];  // 메모리 배열
 unsigned int reg[32];  // 레지스터 배열
 unsigned int pc = 0;  // 프로그램 카운터
 unsigned int instruction_count = 0;  // 실행된 명령어의 수
-unsigned int opcode, rs, rt, rd, shamt, funct, immediate, address;
+unsigned int instruction,opcode, rs, rt, rd, shamt, funct, immediate, address;
 unsigned int aluResult=0;
 
 // 제어 신호
@@ -111,9 +111,16 @@ void load_program(const char* filename) {
 
 
 void fetch() {
-    unsigned int instruction = memory[pc / 4];  // 현재 PC에서 명령어 가져오기
+    instruction = memory[pc / 4];  // 현재 PC에서 명령어 가져오기
     printf("instruction : %x\n\n", instruction);
-    opcode = (instruction >> 26) & 0x0000003F;  // 명령어에서 opcode 추출
+   
+    pc += 4;  // PC를 다음 명령어로 이동
+    
+}
+
+void decode() {
+
+     opcode = (instruction >> 26) & 0x0000003F;  // 명령어에서 opcode 추출
     //printf("%x\n", opcode);
     rs = (instruction >> 21) & 0x1F;  // rs 필드 추출
     printf("%x\n", rs);
@@ -125,11 +132,8 @@ void fetch() {
     funct = instruction & 0x0000003F;  // funct 필드 추출
     immediate = instruction & 0x0000FFFF;  // 즉시값 필드 추출
     address = instruction & 0x03FFFFFF;  // 주소 필드 추출
-    pc += 4;  // PC를 다음 명령어로 이동
-    
-}
 
-void decode() {
+
     // 제어 신호 리셋
     regDest = ALUSrc = memToReg = regWrite = memRead = memWrite = branch = jump = ALUOp = 0;
     //printf("%x\n", rt);
