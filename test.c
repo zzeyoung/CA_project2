@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #define MEM_SIZE 1024*1024  // 메모리 크기를 정의합니다.
-#define INPUTFILENAME "simple.bin"
+#define INPUTFILENAME "simple3.bin"
 
 unsigned int memory[MEM_SIZE];  // 메모리 배열
 unsigned int reg[32];  // 레지스터 배열
@@ -43,7 +43,7 @@ int main() {
     load_program(INPUTFILENAME);  // 프로그램 로딩
 
     while (pc != 0xFFFFFFFF) {  // 무한 루프
-        printf("\n************cycle:%d************\n",instruction_count);
+        printf("\n------------cycle:%d--------------\n",instruction_count+1);
         fetch();  // 명령어 가져오기
         decode();  // 명령어 해석
         execute();  // 명령어 실행
@@ -51,7 +51,7 @@ int main() {
         write_back();  // 결과 레지스터에 쓰기
         instruction_count++;  // 실행된 명령어 수 증가
     }
-    printf("\n************end************\n\n");
+    printf("\n------------end---------------\n\n");
 
     printf("Final value in v0 (r2): %u\n", reg[2]);  // 최종 결과 값 출력
 
@@ -200,7 +200,7 @@ void decode() {
     case 0x0D: // ORI
         ALUSrc = 1;
         regWrite = 1;
-        ALUOp = 1; // OR 연산
+        ALUOp = 1; // OR 1연산
         i_type_count++;
         break;
     case 0x0E: // XORI
@@ -213,6 +213,7 @@ void decode() {
         ALUSrc = 1;
         regWrite = 1;
         ALUOp = 7; // 즉시값보다 작으면 1, 아니면 0
+        printf("SLTI 실행함\n");
         i_type_count++;
         break;
     case 0x23: // LW
@@ -222,12 +223,14 @@ void decode() {
         regWrite = 1;
         ALUOp = 2;
         lw_count++;
+        r_type_count++;
         break;
     case 0x2B: // SW
         ALUSrc = 1; // 주소 계산은 즉시값 사용
         memWrite = 1;
         ALUOp = 2;
         sw_count++;
+        r_type_count++;
         break;
     case 0x04: // BEQ
         branch = 1;
@@ -311,6 +314,7 @@ void memory_access() {
             exit(EXIT_FAILURE);
         }
         reg[rt] = memory[address / 4];
+        printf("register[%d] = memory[%x]",rt,address);
         
     }
     else if (memWrite==1) {
@@ -319,7 +323,7 @@ void memory_access() {
             exit(EXIT_FAILURE);
         }
         memory[address / 4] = reg[rt];
-        printf("momory[%x] = reg[rt]\n",address,rt);
+        printf("momory[%x] = reg[%d]\n",address,rt);
     }
 }
 
