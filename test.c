@@ -1,7 +1,9 @@
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MEM_SIZE 1024*1024
+#define MEM_SIZE 1024*1024  // 메모리 크기를 정의합니다.
 #define INPUTFILENAME "simple3.bin"
 
 unsigned int memory[MEM_SIZE];  // 메모리 배열
@@ -13,6 +15,8 @@ unsigned int aluResult = 0;
 
 // 제어 신호
 int regDest, ALUSrc, memToReg, regWrite, memRead, memWrite, branch, jump, ALUOp;
+
+
 
 // 명령어 통계
 unsigned int i_type_count = 0;
@@ -65,7 +69,6 @@ int main() {
     return 0;
 }
 
-
 void initialize() {
     for (int i = 0; i < MEM_SIZE; i++) {
         memory[i] = 0;
@@ -115,22 +118,28 @@ void fetch() {
     pc += 4;  // PC를 다음 명령어로 이동
 }
 
-
 void decode() {
-    opcode = (instruction >> 26) & 0x0000003F;
-    rs = (instruction >> 21) & 0x1F;
-    rt = (instruction >> 16) & 0x1F;
-    rd = (instruction >> 11) & 0x0000001F;
-    shamt = (instruction >> 6) & 0x0000001F;
-    funct = instruction & 0x0000003F;
-    immediate = instruction & 0x0000FFFF;
-    address = instruction & 0x03FFFFFF;
-    
+
+    opcode = (instruction >> 26) & 0x0000003F;  // 명령어에서 opcode 추출
+    //printf("%x\n", opcode);
+    rs = (instruction >> 21) & 0x1F;  // rs 필드 추출
+    //printf("%x\n", rs);
+    rt = (instruction >> 16) & 0x1F;  // rt 필드 추출
+    //printf("%x\n", rt);
+    rd = (instruction >> 11) & 0x0000001F;  // rd 필드 추출
+    //printf("%x\n", rd);
+    shamt = (instruction >> 6) & 0x0000001F;  // shamt 필드 추출
+    funct = instruction & 0x0000003F;  // funct 필드 추출
+    immediate = instruction & 0x0000FFFF;  // 즉시값 필드 추출
+    address = instruction & 0x03FFFFFF;  // 주소 필드 추출
+
+
     // 제어 신호 리셋
     regDest = ALUSrc = memToReg = regWrite = memRead = memWrite = branch = jump = ALUOp = 0;
-
+    //printf("%x\n", rt);
+    //printf("%x\n", opcode);
     switch (opcode) {
-    case 0x00:
+    case 0x00: // R-type 명령어 처리
         ALUOp = 1; // R-type 명령어에 대한 ALU 연산 설정
         regDest = 1; // 목적지 레지스터는 rd
         regWrite = 1; // 레지스터 쓰기 활성화
@@ -139,7 +148,7 @@ void decode() {
         case 0x20: // ADD
             ALUOp = 2; // 덧셈 연산
             break;
-        case 0x21: //ADDU
+        case 0x21: //ADDU 머지 이거???
             ALUOp = 2;
             break;
         case 0x22: // SUB
@@ -170,7 +179,7 @@ void decode() {
             printf("Unknown R-type function\n");
         }
         break;
-     case 0x08: // ADDI 명령어
+    case 0x08: // ADDI 명령어
         ALUSrc = 1; // 두 번째 ALU 피연산자는 즉시값
         regWrite = 1; // 레지스터 쓰기 활성화
         ALUOp = 2; // 덧셈 연산
@@ -259,6 +268,9 @@ void execute() {
     aluResult = 0;
     unsigned int src1 = reg[rs];
     unsigned int src2 = ALUSrc ? sign_extend(immediate, 16) : reg[rt];
+    //printf("%x\n",src2);
+    //printf("%x", src2);
+    //printf("%x\n", rt);
     switch (ALUOp) {
     case 0: // AND
         aluResult = src1 & src2;
@@ -287,12 +299,15 @@ void execute() {
     default:
         printf("Unknown ALU operation\n");
     }
-     if (!branch && !jump) {
+
+    if (!branch && !jump) {
         if (memRead || memWrite) {
             address = aluResult; // LW와 SW를 위해 주소 저장
         }
+        //printf("address:%x\n",address);
     }
     printf("ALU operation result: %u\n", aluResult);
+
 }
 
 void memory_access() {
@@ -303,6 +318,7 @@ void memory_access() {
         }
         reg[rt] = memory[address / 4];
         printf("register[%d] = memory[%x]", rt, address);
+
     }
     else if (memWrite == 1) {
         if (address / 4 >= MEM_SIZE) {
@@ -310,9 +326,10 @@ void memory_access() {
             exit(EXIT_FAILURE);
         }
         memory[address / 4] = reg[rt];
-        printf("memory[%x] = reg[%d]\n", address, rt);
+        printf("momory[%x] = reg[%d]\n", address, rt);
     }
     //printf("Memory access at address %x, value = %x\n", address, memory[address / 4]);
+
 }
 
 void write_back() {
@@ -322,6 +339,7 @@ void write_back() {
             fprintf(stderr, "Register index out of bounds.\n");
             exit(EXIT_FAILURE);
         }
+        //printf("********memory write예용\n");
         if (memToReg) {
             if (address / 4 >= MEM_SIZE) {
                 fprintf(stderr, "Memory read error for write-back: address out of bounds.\n");
@@ -338,11 +356,14 @@ void write_back() {
                 reg[rt] = aluResult;
                 printf("reg[%d] = %x\n", rt, aluResult);
             }
+
         }
     }
     printf("Before write-back, reg[%d] = %u\n", rt, reg[rt]);
     printf("After write-back, reg[%d] = %u\n", rt, reg[rt]);
+
 }
+
 
 
 unsigned int sign_extend(unsigned int value, int bits) {
